@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Programmable Filter</title>
+        <link rel="stylesheet" type="text/css" href="programmable_filter.css">
+    </head>
+    <body>
+        <label for="filter-preview" class="section-label">Filter Preview</label>
+        <div id="filter-preview-container" class="filter-preview-container">
+            <canvas id="filter-preview" class="filter-preview" width="240" height="240"></canvas>
+            <div class="filter-settings">
+                <div class="filter-size">
+                    <label for="filter-width" class="inline-section-label">Size-X (px):</label>
+                    <input type="number" id="filter-width" class="filter-size-input" placeholder="Width" value="240">
+                    <br>
+                    <label for="filter-height" class="inline-section-label">Size-Y (px):</label>
+                    <input type="number" id="filter-height" class="filter-size-input" placeholder="Height" value="240">
+                </div>
+            </div>
+        </div>
+        <div id="filter-list" class="filter-list">
+            <div id="filters"></div>
+            <div id="add-filter" class="add-filter">+</div>
+        </div>
+        <div class="filter-list-persistence-buttons">
+            <div id="save-button" class="filter-list-persistence-button">&#x1F4BE;</div>
+            <div id="load-button" class="filter-list-persistence-button">&#x1F4C2;</div>
+        </div>
+        <label for="filter-controls" class="section-label">Frames:</label>
+        <div class="filter-controls">
+            <div id="frames">
+
+            </div>
+            <div id="add-frame" class="add-frame">+</div>
+        </div>
+        <label for="palette" class="section-label">Color Palette:</label>
+        <div id="palette" class="palette">
+            <div id="colors">
+
+            </div>
+            <div id="add-palette" class="add-palette">+</div>
+        </div>
+        <label for="palette" class="section-label">Code:</label>
+        <textarea id="filter-code" class="filter-code"></textarea>
+        <script src="programmable_filter.js"></script>
+    </body>
+</html>

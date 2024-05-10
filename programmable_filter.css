@@ -1,0 +1,163 @@
+body {
+    background-color: rgb(24, 24, 24);
+}
+
+.section-label {
+    font-family: monospace;
+    display: block;
+    color: white;
+}
+
+.inline-section-label {
+    font-family: monospace;
+    display: inline-block;
+    color: white;
+}
+
+.filter-preview-container {
+    display: inline-block;
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin: 0.5rem;
+    width: 12rem;
+    height: 14rem;
+}
+
+.filter-preview {
+    background-color: black;
+    border-radius: 5rem;
+    border-color: lightgray;
+    border-width: 0;
+    border-style: solid;
+    margin: 0.5rem;
+    width: 10rem;
+    height: 10rem;
+}
+
+.filter-list {
+    display: inline-flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin: 0.5rem;
+    width: 43.5rem;
+    height: 14rem;
+    background-color: darkgray;
+    margin-right: 0;
+}
+
+.filter-list-persistence-button {
+    display: block;
+    width: 3rem;
+    height: 3rem;
+    text-align: center;
+    font-size: 2rem;
+    line-height: 3rem;
+    margin-left: 0;
+}
+.filter-list-persistence-button:hover {
+    background-color: lightgray;
+    cursor: pointer;
+}
+
+
+.filter-list-persistence-buttons {
+    display: inline-block;
+    vertical-align: top;
+    width: 2rem;
+    height: 4rem;
+    margin-top: 0.5rem;
+}
+
+
+.filter-code {
+    color: black;
+    background-color: darkgray;
+    height: 5rem;
+    width: 56.7rem;
+    margin: 0.5rem;
+}
+
+.error {
+    background-color: lightcoral;
+}
+
+.filter-settings {
+    width: 10rem;
+}
+
+.filter-size {
+    width: 10rem;
+}
+
+.filter-size-input {
+    display: inline-block;
+    width: 3rem;
+    color: white;
+    background-color: rgb(24, 24, 24);
+    border: 0;
+}
+
+.add-frame {
+    color: blue;
+    background-color: lightgray;
+    border-radius: 5rem;
+    border-color: lightgray;
+    height: 5rem;
+    width: 5rem;
+    font-size: 6rem;
+    line-height: 5rem;
+    text-align: center;
+    position: relative;
+    transform: translate(50%, 50%);
+}
+
+.add-frame:hover, .add-filter:hover, .add-palette:hover {
+    background-color: lightblue;
+    cursor: pointer;
+}
+
+.add-palette {
+    color: blue;
+    background-color: lightgray;
+    border-radius: 1rem;
+    border-color: lightgray;
+    height: 2rem;
+    width: 2rem;
+    font-size: 2.4rem;
+    line-height: 2rem;
+    text-align: center;
+    position: relative;
+    
+}
+
+.add-filter {
+    color: blue;
+    background-color: lightgray;
+    border-radius: 2.5rem;
+    border-color: lightgray;
+    height: 5rem;
+    width: 5rem;
+    font-size: 6rem;
+    line-height: 5rem;
+    text-align: center;
+    position: relative;
+    
+}
+
+.filter-controls {
+    margin: 0.5rem;
+    width: 57rem;
+    height: 10rem;
+    display: flex;
+    flex-direction: row;
+    background-color: darkgray;
+}
+
+.palette {
+    margin: 0.5rem;
+    width: 57rem;
+    height: 6rem;
+    display: flex;
+    flex-direction: row;
+    background-color: darkgray;
+}
