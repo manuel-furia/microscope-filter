@@ -1,4 +1,5 @@
 body {
+    font-family: monospace;
     background-color: rgb(24, 24, 24);
 }
 
@@ -68,12 +69,27 @@ body {
     margin-top: 0.5rem;
 }
 
+.nobr {
+    white-space: nowrap;
+}
+
+.filter-range {
+    display: inline-block;
+    width: 12rem;
+}
+
+.filter-color {
+    margin: 0.2rem;
+    width: 2.5rem;
+    height: 1.5rem;
+    border: 0;
+}
 
 .filter-code {
     color: black;
     background-color: darkgray;
-    height: 5rem;
-    width: 56.7rem;
+    height: 18rem;
+    width: 40rem;
     margin: 0.5rem;
 }
 
@@ -95,6 +111,46 @@ body {
     color: white;
     background-color: rgb(24, 24, 24);
     border: 0;
+}
+
+.filter-editor {
+    display: flex;
+    flex-direction: row;
+    height: 20rem;
+}
+
+.filter-controls {
+    margin: 0.5rem;
+    width: 15rem;
+    height: 18rem;
+    display: flex;
+    flex-direction: column;
+    background-color: rgb(24, 24, 24);
+    color: white;
+}
+
+.filter-code-add-button {
+    display: block;
+    border-width: 1px;
+    border-color: lightgray;
+    border-style: solid;
+    font-size: 1.2rem;
+    line-height: 2rem;
+    margin: 0.2rem;
+    text-align: center;
+}
+
+.filter-code-add-button:hover {
+    color: black;
+    background-color: lightgray;
+    cursor: pointer;
+}
+
+.filter-long-code {
+    margin: 0.5rem;
+    display: flex;
+    width: 40rem;
+    height: 18rem;
 }
 
 .add-frame {
@@ -137,20 +193,10 @@ body {
     border-color: lightgray;
     height: 5rem;
     width: 5rem;
-    font-size: 6rem;
-    line-height: 5rem;
+    font-size: 5rem;
+    line-height: 4.3rem;
     text-align: center;
     position: relative;
-    
-}
-
-.filter-controls {
-    margin: 0.5rem;
-    width: 57rem;
-    height: 10rem;
-    display: flex;
-    flex-direction: row;
-    background-color: darkgray;
 }
 
 .palette {

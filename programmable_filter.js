@@ -1,6 +1,86 @@
+const filterLibrary = [
+    {
+        name: "Darkfield NA <= 0.4",
+        code: "<P000000><PFFFFFF><T0780780F000D03501>",
+        size: { width: 240, height: 240 },
+        cache: null,
+        parsed: null,
+    }
+];
+
+const selectedFilterIndex = 0;
+
+const previewCanvas = document.getElementById("filter-preview");
+const previewCanvasContext = previewCanvas.getContext("2d");
+const previewState = {
+    palette: [],
+    bitmaps: [],
+    animations: [],
+    animationStartTime: Date.now(),
+    animationElapsedTime: 0,
+};
+
+Array.from(document.getElementsByClassName("filter-range")).forEach(range => {
+    range.addEventListener("input", e => {
+        updatePreview(document.getElementById("filter-code").value);
+    });
+});
+
+Array.from(document.getElementsByClassName("filter-color")).forEach(color => {
+    color.addEventListener("input", e => {
+        updatePreview(document.getElementById("filter-code").value);
+    });
+});
+
 document.getElementById("filter-code").addEventListener("input", e =>
     updatePreview(e.target.value)
 );
+document.getElementById("add-bitmap").addEventListener("click", e => {
+    // Load gif file:
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".gif";
+    input.addEventListener("change", e => {
+        const file = e.target.files[0];
+        const gif = new Image();
+        gif.src = URL.createObjectURL(file);
+        gif.onload = () => {
+            document.getElementById("filter-code").value += gifToBitmap(gif);
+        };
+    });
+    input.click();
+    input.remove();
+});
+
+function gifToBitmap(image) {
+    // Read the image data
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+    canvas.width = (Math.floor(image.width / 16) + 1) * 16;
+    canvas.height = (Math.floor(image.height / 16) + 1) * 16;
+    context.drawImage(image, 0, 0, image.width, image.height);
+
+    let colors = {};
+    let sortedColors = [];
+
+    // Get the image data
+    const imageData = context.getImageData(0, 0, image.width, image.height);
+    const data = imageData.data;
+    const pixels = [];
+    for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        const color = r.toString(16).padStart(2, "0") + g.toString(16).padStart(2, "0") + b.toString(16).padStart(2, "0");
+        if (!colors[color]) {
+            colors[color] = Object.keys(colors).length;
+            sortedColors.push(color);
+        }
+        pixels.push(colors[color]);
+    }
+    return bitmapToBCommand({ x: 50, y: 50, width: image.width, height: image.height, pixels });
+
+}
 
 function streamCode(code) {
     let index = 0;
@@ -55,16 +135,6 @@ function rearrangeIndicesbyBlock(indices, width, height) {
     return rearranged;
 }
 
-const previewCanvas = document.getElementById("filter-preview");
-const previewCanvasContext = previewCanvas.getContext("2d");
-const previewState = {
-    palette: [],
-    bitmaps: [],
-    animations: [],
-    animationStartTime: Date.now(),
-    animationElapsedTime: 0,
-};
-
 function updatePreview(code) {
     previewState.palette = [];
     previewState.bitmaps = [];
@@ -72,7 +142,31 @@ function updatePreview(code) {
     previewState.animationElapsedTime = 0;
     previewState.animationStartTime = Date.now();
     try {
-        previewCode(streamCode(code), previewState.bitmaps, previewState.palette, previewState.animations);
+        Array.from(document.getElementsByClassName("filter-range")).forEach(range => {
+            range.disabled = true;
+        });
+        Array.from(document.getElementsByClassName("filter-color")).forEach(color => {
+            color.disabled = true;
+        });
+        let parsed = parseCode(streamCode(code),
+                [
+                    {key: "width", scalable: false, hexInput: false, value: selectedFilterIndex < filterLibrary.length ? filterLibrary[selectedFilterIndex].size.width : 240},
+                    {key: "height", scalable: false, hexInput: false, value: selectedFilterIndex < filterLibrary.length ? filterLibrary[selectedFilterIndex].size.height : 240},
+                    {key: "cx", scalable: false, hexInput: false, value: (selectedFilterIndex < filterLibrary.length ? (filterLibrary[selectedFilterIndex].size.width / 2) : 120) | 0},
+                    {key: "cy", scalable: false, hexInput: false, value: (selectedFilterIndex < filterLibrary.length ? (filterLibrary[selectedFilterIndex].size.height / 2) : 120) | 0},
+                    ...([...Array(9).keys()].map(i => ({ key: `C${i}`, scalable: false, hexInput: true, value: document.getElementById(`filter-c${i}`).value.substring(1).toUpperCase() }))),
+                    ...([...Array(5).keys()].map(i => ({ key: `P${i}`, scalable: true, hexInput: false, value: document.getElementById(`filter-p${i}`).value.toString()}))),
+                ]
+            );
+        previewState.bitmaps = parsed.bitmaps;
+        previewState.palette = parsed.palette;
+        previewState.animations = parsed.animations;
+        for (let foundParameter of parsed.foundParameters) {
+            let uiElement = document.getElementById(`filter-${foundParameter.toLowerCase()}`);
+            if (uiElement) {
+                uiElement.disabled = false;
+            }
+        }
         document.getElementById("filter-code").classList.remove("error");
     } catch (e) {
         document.getElementById("filter-code").classList.add("error");
@@ -154,9 +248,16 @@ function drawPreviewBitmap(bitmap, palette) {
 
 setInterval(() => drawPreviewBitmaps(previewState.bitmaps, previewState.palette, previewState.animations), 1000 / 32);
 
-function previewCode(stream, bitmaps, palette, animations) {
+function parseCode(stream, replacements) {
+    let parsed = {
+        bitmaps: [],
+        palette: [],
+        animations: [],
+        finalCode: "",
+        foundParameters: []
+    };
     if (stream.eof()) {
-        return;
+        return parsed;
     }
     if (stream.peek() !== "<") {
         throw new Error("Expected < to start the code");
@@ -166,6 +267,7 @@ function previewCode(stream, bitmaps, palette, animations) {
         parseCommand(stream);
         expect(stream, ">")
     }
+    return parsed;
 
     function parseCommand(stream) {
         const command = stream.peek();
@@ -192,15 +294,15 @@ function previewCode(stream, bitmaps, palette, animations) {
                 default: throw new Error(`Unknown animation component: ${type}`);
             }
         }
-        animations.push({ duration, components } );
+        parsed.animations.push({ duration, components });
     }
     function parseBitmapKeyFrame(stream) {
         // BIIXXXYYYV
         expect(stream, "B");
         const index = parseHexByte(stream);
-        const x = parse3DigitHexNumber(stream);
-        const y = parse3DigitHexNumber(stream);
-        const visible = stream.read() === "V";
+        const x = parseHexByteAndAHalf(stream);
+        const y = parseHexByteAndAHalf(stream);
+        const visible = readChar(stream) === "V";
         return { type: "bitmapkf", index, x, y, visible };
     }
     function parsePaletteKeyFrame(stream) {
@@ -219,39 +321,47 @@ function previewCode(stream, bitmaps, palette, animations) {
         const g = parseHexByte(stream);
         const b = parseHexByte(stream);
         const color = { r, g, b };
-        if (index < palette.length) {
-            palette[index] = color;
+        if (index < parsed.palette.length) {
+            parsed.palette[index] = color;
         }
     }
     function parsePalette(stream) {
         expect(stream, "P");
         if (stream.peek() === ">") {
-            stream.read();
-            palette = [];
+            readChar(stream);
+            parsed.palette.length = 0;
+            return;
+        }
+        if (stream.peek() === "{") {
+            let replacementColor = replaceParameterTemplate(parseParameterTemplate(stream), 6);
+            let r = parseInt(replacementColor.substring(0, 2), 16);
+            let g = parseInt(replacementColor.substring(2, 4), 16);
+            let b = parseInt(replacementColor.substring(4, 6), 16);
+            const color = { r, g, b };
+            addPalette(color);
             return;
         }
         const r = parseHexByte(stream);
         const g = parseHexByte(stream);
         const b = parseHexByte(stream);
         const color = { r, g, b };
-        addPalette(palette, color);
+        addPalette(color);
     }
     function parseClear(stream) {
         expect(stream, "Z");
-        bitmaps.length = 0;
-        animations.length = 0;
+        parsed.bitmaps.length = 0;
+        parsed.animations.length = 0;
     }
     function parseBitmap(stream) {
         expect(stream, "B");
-        const x = parse3DigitHexNumber(stream);
-        const y = parse3DigitHexNumber(stream);
-        const width = parse3DigitHexNumber(stream);
-        const height = parse3DigitHexNumber(stream);
+        const x = parseHexByteAndAHalf(stream);
+        const y = parseHexByteAndAHalf(stream);
+        const width = parseHexByteAndAHalf(stream);
+        const height = parseHexByteAndAHalf(stream);
         const bits = parseHexDigit(stream);
         const data = [];
         while (stream.peek() !== ">") {
-            const digit = stream.read();
-            data.push(digit);
+            data.push(readChar(stream));
         }
         const binary = hexDigitsToBinary(data);
         const pixels = binaryToIndices(binary, bits);
@@ -260,9 +370,9 @@ function previewCode(stream, bitmaps, palette, animations) {
     function parseTemplate(stream) {
         // <TXXXYYYC0...disks_and_sections...>
         expect(stream, "T");
-        const x = parse3DigitHexNumber(stream);
-        const y = parse3DigitHexNumber(stream);
-        const s = parse3DigitHexNumber(stream);
+        const x = parseHexByteAndAHalf(stream);
+        const y = parseHexByteAndAHalf(stream);
+        const s = parseHexByteAndAHalf(stream);
         const backgroundColor = parseColorRef(stream);
         const components = [];
         while (stream.peek() !== ">") {
@@ -278,7 +388,7 @@ function previewCode(stream, bitmaps, palette, animations) {
     function parseDisk(stream) {
         // DCCRRR
         expect(stream, "D");
-        const radius = parse3DigitHexNumber(stream);
+        const radius = parseHexByteAndAHalf(stream);
         const color = parseColorRef(stream);
         return { type : "disk", color, radius };
     }
@@ -289,11 +399,69 @@ function previewCode(stream, bitmaps, palette, animations) {
         const color = parseColorRef(stream);
         return { type : "section", index, color };
     }
+    function parseParameterTemplate(stream) {
+        // There are 2 types of parameters: {C0}, {P0,3,300}
+        stream.read();
+        let key = "UNKNOWN";
+        let maxVal = "255";
+        let minVal = "0";
+        while (!stream.eof() && stream.peek() !== "}") {
+            key = "";
+            while (!stream.eof() && stream.peek() !== "," && stream.peek() !== "}") {
+                key += stream.read();
+            }
+            if (stream.peek() === ",") {
+                stream.read();
+                minVal = "";
+                while (!stream.eof() && stream.peek() !== ",") {
+                    minVal += stream.read();
+                }
+            }
+            if (stream.peek() === ",") {
+                stream.read();
+                maxVal = "";
+                while (!stream.eof() && stream.peek() !== "}") {
+                    maxVal += stream.read();
+                }
+            }
+        }
+        stream.read();
+        return { key, maxVal: parseInt(maxVal), minVal: parseInt(minVal) };
+    }
+    function replaceParameterTemplate(parameter, len) {
+        let result = "0".repeat(len);
+        let hexInput = false;
+        for (let replacement of replacements) {
+            if (replacement.key === parameter.key) {
+                parsed.foundParameters.push(replacement.key);
+                let replacementValue = replacement.value;
+                if (replacement.scalable) {
+                    let value = parseInt(replacement.value);
+                    let maxVal = parameter.maxVal || 255;
+                    let minVal = parameter.minVal || 0;
+                    let scaled = (minVal + (maxVal - minVal) * value / 255) | 0;
+                    replacementValue = scaled.toString();
+                }
+                let hex = replacement.hexInput ? replacementValue : parseInt(replacementValue).toString(16).toUpperCase();
+                result = hex.substring(0, Math.min(len, hex.length)).padStart(len, "0");
+                hexInput = replacement.hexInput;
+            }
+        }
+        parsed.finalCode += result;
+        return hexInput ? result : parseInt(result, 16);
+    }
     function parseColorRef(stream) {
-        return parseHexByte(stream) ;
+        if (stream.peek() === "{") {
+            return replaceParameterTemplate(parseParameterTemplate(stream), 2);
+        }
+        return parseHexByte(stream);
     }
     function parseHexDigit(stream) {
+        if (stream.peek() === "{") {
+            return replaceParameterTemplate(parseParameterTemplate(stream), 1);
+        }
         const char = stream.read();
+        parsed.finalCode += char;
         if (char >= "0" && char <= "9") {
             return char.charCodeAt(0) - "0".charCodeAt(0);
         } else if (char >= "A" && char <= "F") {
@@ -303,29 +471,44 @@ function previewCode(stream, bitmaps, palette, animations) {
         }
     }
     function parseHexByte(stream) {
+        if (stream.peek() === "{") {
+            return replaceParameterTemplate(parseParameterTemplate(stream), 2);
+        }
+        return parse2DigitNumber(stream);
+    }
+    function parse2DigitNumber(stream) {
         const high = parseHexDigit(stream);
         const low = parseHexDigit(stream);
         return high * 16 + low;
     }
-
-    function parse3DigitHexNumber(stream) {
+    function parseHexByteAndAHalf(stream) {
+        if (stream.peek() === "{") {
+            return replaceParameterTemplate(parseParameterTemplate(stream), 3);
+        }
+        return parse3DigitNumber(stream);
+    }
+    function parse3DigitNumber(stream) {
         const first = parseHexDigit(stream);
         const second = parseHexDigit(stream);
         const third = parseHexDigit(stream);
         return first * 256 + second * 16 + third;
-    }   
-
+    }
     function expect(stream, expected) {
         const token = stream.read();
         if (token !== expected) {
             throw new Error(`Expected ${expected} but got ${token}`);
         }
+        parsed.finalCode += token;
     }
-    function addPalette(palette, color) {
-        palette.push(color);
+    function readChar(stream) {
+        parsed.finalCode += stream.peek();
+        return stream.read();
+    }
+    function addPalette(color) {
+        parsed.palette.push(color);
     }
     function addBitmap(x, y, width, height, pixels) {
-        bitmaps.push({ x, y, width, height, pixels, visible: true });
+       parsed.bitmaps.push({ x, y, width, height, pixels, visible: true });
     }
     function addTemplate(x, y, w, h, backgroundColor, components) {
         // Build the bitmap
@@ -337,7 +520,7 @@ function previewCode(stream, bitmaps, palette, animations) {
                 addSection(w, h, bitmap, component);
             }
         }
-        bitmaps.push({ x: x, y: y, width: w, height: h, pixels: bitmap, visible: true });
+        addBitmap(x, y, w, h, bitmap);
     }
     function addDisk(w, h, bitmap, disk) {
         const { color, radius } = disk;

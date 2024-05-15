@@ -23,25 +23,37 @@
             <div id="add-filter" class="add-filter">+</div>
         </div>
         <div class="filter-list-persistence-buttons">
-            <div id="save-button" class="filter-list-persistence-button">&#x1F4BE;</div>
-            <div id="load-button" class="filter-list-persistence-button">&#x1F4C2;</div>
+            <div title="Duplicate Selected" id="duplicate-button" class="filter-list-persistence-button">&#x1F4CB;</div>
+            <div title="Save All" id="save-button" class="filter-list-persistence-button">&#x1F4BE;</div>
+            <div title="Load All" id="load-button" class="filter-list-persistence-button">&#x1F4C2;</div>
         </div>
-        <label for="filter-controls" class="section-label">Frames:</label>
-        <div class="filter-controls">
-            <div id="frames">
-
+        <label for="filter-editor" class="section-label">Filter:</label>
+        <div class="filter-editor">
+            <div class="filter-controls">
+                <div id="add-bitmap"class="filter-code-add-button">Add Bitmap</div>
+                <div id="copy-to-clipboard"class="filter-code-add-button">Copy to Clipboard</div>
+                <br>
+                <div class="nobr">P0: <input type="range" id="filter-p0" class="filter-range" min="0" max="255" value="1"></div>
+                <div class="nobr">P1: <input type="range" id="filter-p1" class="filter-range" min="0" max="255" value="1"></div>
+                <div class="nobr">P2: <input type="range" id="filter-p2" class="filter-range" min="0" max="255" value="1"></div>
+                <div class="nobr">P3: <input type="range" id="filter-p3" class="filter-range" min="0" max="255" value="1"></div>
+                <div class="nobr">P4: <input type="range" id="filter-p4" class="filter-range" min="0" max="255" value="1"></div>
+                <br>
+                <div>
+                    <span class="nobr"><label for="filter-c1">C0:</label><input type="color" id="filter-c0" class="filter-color"></span>
+                    <span class="nobr"><label for="filter-c1">C1:</label><input type="color" id="filter-c1" class="filter-color"></span>
+                    <span class="nobr"><label for="filter-c2">C2:</label><input type="color" id="filter-c2" class="filter-color"></span>
+                    <span class="nobr"><label for="filter-c3">C3:</label><input type="color" id="filter-c3" class="filter-color"></span>
+                    <span class="nobr"><label for="filter-c4">C4:</label><input type="color" id="filter-c4" class="filter-color"></span>
+                    <span class="nobr"><label for="filter-c5">C5:</label><input type="color" id="filter-c5" class="filter-color"></span>
+                    <span class="nobr"><label for="filter-c6">C6:</label><input type="color" id="filter-c6" class="filter-color"></span>
+                    <span class="nobr"><label for="filter-c7">C7:</label><input type="color" id="filter-c7" class="filter-color"></span>
+                    <span class="nobr"><label for="filter-c8">C8:</label><input type="color" id="filter-c8" class="filter-color"></span>
+                </div>
             </div>
-            <div id="add-frame" class="add-frame">+</div>
+            <textarea id="filter-code" class="filter-code"></textarea>
         </div>
-        <label for="palette" class="section-label">Color Palette:</label>
-        <div id="palette" class="palette">
-            <div id="colors">
-
-            </div>
-            <div id="add-palette" class="add-palette">+</div>
-        </div>
-        <label for="palette" class="section-label">Code:</label>
-        <textarea id="filter-code" class="filter-code"></textarea>
+        
         <script src="programmable_filter.js"></script>
     </body>
 </html>
