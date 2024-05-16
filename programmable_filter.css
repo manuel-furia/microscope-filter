@@ -15,13 +15,18 @@ body {
     color: white;
 }
 
+.preview-and-list {
+    display: flex;
+    flex-direction: row;
+}
+
 .filter-preview-container {
-    display: inline-block;
+    display: inline-flex;
     flex-direction: row;
     flex-wrap: wrap;
     margin: 0.5rem;
     width: 12rem;
-    height: 14rem;
+    height: 12rem;
 }
 
 .filter-preview {
@@ -35,6 +40,33 @@ body {
     height: 10rem;
 }
 
+.filter-item {
+    margin: 0;
+    width: 5rem;
+    height: 5rem;
+    border-color: black;
+    border-width: 1px;
+    border-style: dashed;
+    border-radius: 5rem;
+}
+
+.filter-item-selected {
+    margin: 0;
+    width: 5rem;
+    height: 5rem;
+    border-color: orangered;
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 5rem;
+}
+
+#filters {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    height: min-content;
+}
+
 .filter-list {
     display: inline-flex;
     flex-direction: row;
@@ -44,6 +76,7 @@ body {
     height: 14rem;
     background-color: darkgray;
     margin-right: 0;
+    overflow: scroll;
 }
 
 .filter-list-persistence-button {
@@ -64,8 +97,8 @@ body {
 .filter-list-persistence-buttons {
     display: inline-block;
     vertical-align: top;
-    width: 2rem;
-    height: 4rem;
+    width: 4rem;
+    height: 12rem;
     margin-top: 0.5rem;
 }
 
@@ -88,7 +121,7 @@ body {
 .filter-code {
     color: black;
     background-color: darkgray;
-    height: 18rem;
+    height: 21rem;
     width: 40rem;
     margin: 0.5rem;
 }
@@ -111,6 +144,15 @@ body {
     color: white;
     background-color: rgb(24, 24, 24);
     border: 0;
+}
+
+.filter-name-input {
+    display: inline-block;
+    width: 10rem;
+    color: white;
+    background-color: rgb(24, 24, 24);
+    border: 0;
+    margin-bottom: 0.5rem;
 }
 
 .filter-editor {

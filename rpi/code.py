@@ -197,20 +197,6 @@ def parse_clear(stream):
     gc.collect()
     print("Free memory:", gc.mem_free())
 
-def hex_digits_to_binary(data):
-    result = ""
-    for i in range(len(data)):
-        value = int(data[i], 16)
-        result += bin(value).zfill(4)
-    return result
-
-def binary_to_indices(binary, bits):
-    indices = []
-    for i in range(0, len(binary), bits):
-        value = int(binary[i:i+bits], 2)
-        indices.append(value)
-    return indices
-
 def add_bitmap(x, y, width, height, bits, stream):
     pixel_width = 16*width
     pixel_height = 16*height

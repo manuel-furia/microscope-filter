@@ -6,31 +6,37 @@
     </head>
     <body>
         <label for="filter-preview" class="section-label">Filter Preview</label>
-        <div id="filter-preview-container" class="filter-preview-container">
-            <canvas id="filter-preview" class="filter-preview" width="240" height="240"></canvas>
-            <div class="filter-settings">
-                <div class="filter-size">
-                    <label for="filter-width" class="inline-section-label">Size-X (px):</label>
-                    <input type="number" id="filter-width" class="filter-size-input" placeholder="Width" value="240">
-                    <br>
-                    <label for="filter-height" class="inline-section-label">Size-Y (px):</label>
-                    <input type="number" id="filter-height" class="filter-size-input" placeholder="Height" value="240">
+        <div class="preview-and-list">
+            <div id="filter-preview-container" class="filter-preview-container">
+                <canvas id="filter-preview" class="filter-preview" width="240" height="240"></canvas>
+                <div class="filter-settings">
+                    <div class="filter-size">
+                        <input type="text" id="filter-name" class="filter-name-input" placeholder="Filter Name" value="Filter Name">
+                        <br>
+                        <label for="filter-width" class="inline-section-label">Size-X (px):</label>
+                        <input type="number" id="filter-width" class="filter-size-input" placeholder="Width" value="240">
+                        <br>
+                        <label for="filter-height" class="inline-section-label">Size-Y (px):</label>
+                        <input type="number" id="filter-height" class="filter-size-input" placeholder="Height" value="240">
+                    </div>
                 </div>
             </div>
+            <div id="filter-list" class="filter-list">
+                <div id="add-filter" class="add-filter">+</div>
+            </div>
+            <div class="filter-list-persistence-buttons">
+                <div title="Duplicate Selected" id="duplicate-button" class="filter-list-persistence-button">&#x1F4CB;</div>
+                <div title="Delete Selected" id="delete-button" class="filter-list-persistence-button">&#x0274c;</div>
+                <div title="Save All" id="save-button" class="filter-list-persistence-button">&#x1F4BE;</div>
+                <div title="Load All" id="load-button" class="filter-list-persistence-button">&#x1F4C2;</div>
+            </div>
         </div>
-        <div id="filter-list" class="filter-list">
-            <div id="filters"></div>
-            <div id="add-filter" class="add-filter">+</div>
-        </div>
-        <div class="filter-list-persistence-buttons">
-            <div title="Duplicate Selected" id="duplicate-button" class="filter-list-persistence-button">&#x1F4CB;</div>
-            <div title="Save All" id="save-button" class="filter-list-persistence-button">&#x1F4BE;</div>
-            <div title="Load All" id="load-button" class="filter-list-persistence-button">&#x1F4C2;</div>
-        </div>
+        <br><br><br>
         <label for="filter-editor" class="section-label">Filter:</label>
         <div class="filter-editor">
             <div class="filter-controls">
-                <div id="add-bitmap"class="filter-code-add-button">Add Bitmap</div>
+                <div id="connect-button" class="filter-code-add-button">Connect</div>
+                <div id="add-bitmap"class="filter-code-add-button">Use Bitmap</div>
                 <div id="copy-to-clipboard"class="filter-code-add-button">Copy to Clipboard</div>
                 <br>
                 <div class="nobr">P0: <input type="range" id="filter-p0" class="filter-range" min="0" max="255" value="1"></div>
@@ -53,7 +59,7 @@
             </div>
             <textarea id="filter-code" class="filter-code"></textarea>
         </div>
-        
+        <script src="default_filters.js"></script>
         <script src="programmable_filter.js"></script>
     </body>
 </html>

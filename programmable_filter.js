@@ -1,14 +1,4 @@
-const filterLibrary = [
-    {
-        name: "Darkfield NA <= 0.4",
-        code: "<P000000><PFFFFFF><T0780780F000D03501>",
-        size: { width: 240, height: 240 },
-        cache: null,
-        parsed: null,
-    }
-];
-
-const selectedFilterIndex = 0;
+const filterLibrary = [];
 
 const previewCanvas = document.getElementById("filter-preview");
 const previewCanvasContext = previewCanvas.getContext("2d");
@@ -18,23 +8,215 @@ const previewState = {
     animations: [],
     animationStartTime: Date.now(),
     animationElapsedTime: 0,
+    selectedFilterIndex: 0,
+    painted: false,
+    sent: false,
+    lastSent: 0,
+    port: null,
+    parsed: null
 };
+
+if (localStorage.getItem("editing") !== null) {
+    loadFilterLibrary(localStorage.getItem("editing"));
+} else {
+    loadFilterLibrary(DEFAULT_FILTERS)
+}
+
+function sendCommand(command) {
+    if (previewState.port && previewState.port.writable && !previewState.port.writable.locked && previewState.lastSent + 1000 < Date.now()) {
+        let writer = previewState.port.writable.getWriter();
+        writer.write(new TextEncoder().encode("<Z><P>" + command)).then(() => {
+            writer.releaseLock();
+        });
+        return true;
+    }
+    return false;
+}
+
+document.getElementById("connect-button").addEventListener("click", e => {
+    if (previewState.port) {
+        previewState.port.close().then(() => {
+            previewState.port = null;
+            document.getElementById("connect-button").innerText = "Connect";
+        });
+        return;
+    }
+    navigator.serial.requestPort().then(port => {
+        previewState.port = port;
+        port.open({ baudRate: 115200 }).then(() => {
+            document.getElementById("connect-button").innerText = "Disconnect";
+        });
+    });
+});
+
+function updateFilterList() {
+    const filterList = document.getElementById("filter-list");
+    Array.from(filterList.children).forEach(child => {
+        if (child.classList.contains("filter-item")) {
+            child.remove();
+        }
+    });
+    filterLibrary.forEach((filter, index) => {
+        const filterElement = document.createElement("div");
+        filterElement.classList.add("filter-item");
+        if (index === previewState.selectedFilterIndex) {
+            filterElement.classList.add("filter-item-selected");
+        }
+        filterElement.style.background = filter.image ? `url(${filter.image})` : "white";
+        filterElement.style.backgroundSize = "cover";
+        filterElement.addEventListener("click", e => {
+            previewState.selectedFilterIndex = index;
+            loadCodeAndParameters();
+        });
+        filterList.insertBefore(filterElement, document.getElementById("add-filter"));
+    });
+}
+
+function loadCodeAndParameters() {
+    if (previewState.selectedFilterIndex >= filterLibrary.length) {
+        document.getElementById("filter-name").value = "";
+        document.getElementById("filter-code").value = "";
+        document.getElementById("filter-width").value = 240;
+        document.getElementById("filter-height").value = 240;
+        updatePreview(selectedFilter.code);
+        return;
+    }
+    let selectedFilter = filterLibrary[previewState.selectedFilterIndex];
+    document.getElementById("filter-name").value = selectedFilter.name;
+    document.getElementById("filter-code").value = selectedFilter.code;
+    document.getElementById("filter-width").value = selectedFilter.size.width;
+    document.getElementById("filter-height").value = selectedFilter.size.height;
+    selectedFilter.parameterValues.forEach(parameter => {
+        let element = document.getElementById(`filter-${parameter.key}`);
+        if (element) {
+            element.value = parameter.value;
+        }
+    });
+    updatePreview(selectedFilter.code);
+}
+
+updateFilterList();
+
+document.getElementById("filter-width").addEventListener("input", e => {
+    setFilterData();
+    updatePreview(document.getElementById("filter-code").value);
+});
+
+document.getElementById("filter-height").addEventListener("input", e => {
+    setFilterData();
+    updatePreview(document.getElementById("filter-code").value);
+});
+
+document.getElementById("filter-name").addEventListener("input", e => {
+    setFilterData();
+});
 
 Array.from(document.getElementsByClassName("filter-range")).forEach(range => {
     range.addEventListener("input", e => {
+        setFilterData();
         updatePreview(document.getElementById("filter-code").value);
     });
 });
 
 Array.from(document.getElementsByClassName("filter-color")).forEach(color => {
     color.addEventListener("input", e => {
+        setFilterData();
         updatePreview(document.getElementById("filter-code").value);
     });
 });
 
-document.getElementById("filter-code").addEventListener("input", e =>
+document.getElementById("duplicate-button").addEventListener("click", e => {
+    if (previewState.selectedFilterIndex < filterLibrary.length) {
+        let selectedFilter = filterLibrary[previewState.selectedFilterIndex];
+        filterLibrary.push({
+            name: selectedFilter.name,
+            code: selectedFilter.code,
+            size: { width: selectedFilter.size.width, height: selectedFilter.size.height },
+            image: selectedFilter.image,
+            parameterValues: selectedFilter.parameterValues
+        });
+        updateFilterList();
+    }
+});
+
+document.getElementById("delete-button").addEventListener("click", e => {
+    if (previewState.selectedFilterIndex < filterLibrary.length) {
+        filterLibrary.splice(previewState.selectedFilterIndex, 1);
+        previewState.selectedFilterIndex = Math.max(0, previewState.selectedFilterIndex - 1);
+        loadCodeAndParameters();
+        updateFilterList();
+    }
+});
+
+document.getElementById("save-button").addEventListener("click", e => {
+    let data = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(filterLibrary));
+    let link = document.createElement("a");
+    link.setAttribute("href", data);
+    link.setAttribute("download", "filters.filterlist");
+    link.click();
+});
+
+function loadFilterLibrary(json) {
+    filterLibrary.length = 0;
+    const data = JSON.parse(json);
+    data.forEach(filter => {
+        filterLibrary.push(filter);
+    });
+    updateFilterList();
+    previewState.selectedFilterIndex = 0;
+    loadCodeAndParameters();
+}
+
+document.getElementById("load-button").addEventListener("click", e => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".filterlist";
+    input.addEventListener("change", e => {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = e => {
+            loadFilterLibrary(e.target.result);
+        };
+        reader.readAsText(file);
+    });
+    input.click();
+    input.remove();
+});
+
+
+document.getElementById("filter-code").addEventListener("input", e => {
+    setFilterData();
     updatePreview(e.target.value)
-);
+});
+
+document.getElementById("add-filter").addEventListener("click", e => {
+    filterLibrary.push({
+        name: "",
+        code: "",
+        size: { width: 240, height: 240},
+        image: null,
+        parameterValues: []
+    });
+    setFilterData();
+    resetPreviewState();
+    updateFilterList();
+});
+
+function setFilterData() {
+    let filterParameters = [];
+    Array.from(document.getElementsByClassName("filter-range")).forEach(range => {
+        filterParameters.push({ key: range.id.substring(7), value: range.value });
+    });
+    Array.from(document.getElementsByClassName("filter-color")).forEach(color => {
+        filterParameters.push({ key: color.id.substring(7), value: color.value });
+    });
+    filterLibrary[previewState.selectedFilterIndex].parameterValues = filterParameters;
+    filterLibrary[previewState.selectedFilterIndex].name = document.getElementById("filter-name").value;
+    filterLibrary[previewState.selectedFilterIndex].code = document.getElementById("filter-code").value;
+    filterLibrary[previewState.selectedFilterIndex].size.width = parseInt(document.getElementById("filter-width").value);
+    filterLibrary[previewState.selectedFilterIndex].size.height = parseInt(document.getElementById("filter-height").value);
+}
+
 document.getElementById("add-bitmap").addEventListener("click", e => {
     // Load gif file:
     const input = document.createElement("input");
@@ -52,34 +234,52 @@ document.getElementById("add-bitmap").addEventListener("click", e => {
     input.remove();
 });
 
+function resetPreviewState() {
+    previewState.bitmaps = [];
+    previewState.palette = [];
+    previewState.animations = [];
+    previewState.animationElapsedTime = 0;
+    previewState.animationStartTime = Date.now();
+    previewState.painted = false;
+    previewState.sent = false;
+}
+
 function gifToBitmap(image) {
     // Read the image data
     const canvas = document.createElement("canvas");
     const context = canvas.getContext("2d");
     canvas.width = (Math.floor(image.width / 16) + 1) * 16;
     canvas.height = (Math.floor(image.height / 16) + 1) * 16;
+    context.clearRect(0, 0, canvas.width, canvas.height);
     context.drawImage(image, 0, 0, image.width, image.height);
 
     let colors = {};
     let sortedColors = [];
 
     // Get the image data
-    const imageData = context.getImageData(0, 0, image.width, image.height);
+    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
     const pixels = [];
     for (let i = 0; i < data.length; i += 4) {
         const r = data[i];
         const g = data[i + 1];
         const b = data[i + 2];
-        const color = r.toString(16).padStart(2, "0") + g.toString(16).padStart(2, "0") + b.toString(16).padStart(2, "0");
-        if (!colors[color]) {
+        const color = (r.toString(16).padStart(2, "0") + g.toString(16).padStart(2, "0") + b.toString(16).padStart(2, "0")).toUpperCase();
+        if (!(color in colors)) {
             colors[color] = Object.keys(colors).length;
             sortedColors.push(color);
         }
         pixels.push(colors[color]);
     }
-    return bitmapToBCommand({ x: 50, y: 50, width: image.width, height: image.height, pixels });
-
+    let command = "<Z><P>";
+    for (let i = 0; i < sortedColors.length; i++) {
+        command += `<P${sortedColors[i]}>`;
+    }
+    command += "<";
+    let filterWidth = filterLibrary.length == 0 ? 240 : filterLibrary[filterLibrary.length - 1].size.width;
+    let filterHeight = filterLibrary.length == 0 ? 240 : filterLibrary[filterLibrary.length - 1].size.height;
+    command += bitmapToBCommand({ x: (filterWidth / 2) | 0, y: (filterHeight / 2) | 0, width: canvas.width, height: canvas.height, pixels })
+    return command + ">";
 }
 
 function streamCode(code) {
@@ -95,7 +295,7 @@ function hexDigitsToBinary(data) {
     result = "";
     for (let i = 0; i < data.length; i++) {
         const value = parseInt(data[i], 16);
-        result += value.toString(2).padEnd(4, "0");
+        result += value.toString(2).padStart(4, "0");
     }
     return result;
 }
@@ -135,12 +335,26 @@ function rearrangeIndicesbyBlock(indices, width, height) {
     return rearranged;
 }
 
+function undoBlockRearrangement(indices, width, height) {
+    const xBlocks = (width / 16) | 0;
+    const yBlocks = (height / 16) | 0;
+    const rearranged = new Array(width * height).fill(0);
+    let index = 0;
+    for (let bx = 0; bx < xBlocks; bx++) {
+        for (let by = 0; by < yBlocks; by++) {
+            for (let y = 0; y < 16; y++) {
+                for (let x = 0; x < 16; x++) {
+                    const destIndex = (by * 16 + y) * width + bx * 16 + x;
+                    rearranged[destIndex] = indices[index++];
+                }
+            }
+        }
+    }
+    return rearranged;
+}
+
 function updatePreview(code) {
-    previewState.palette = [];
-    previewState.bitmaps = [];
-    previewState.animations = [];
-    previewState.animationElapsedTime = 0;
-    previewState.animationStartTime = Date.now();
+    resetPreviewState();
     try {
         Array.from(document.getElementsByClassName("filter-range")).forEach(range => {
             range.disabled = true;
@@ -150,10 +364,10 @@ function updatePreview(code) {
         });
         let parsed = parseCode(streamCode(code),
                 [
-                    {key: "width", scalable: false, hexInput: false, value: selectedFilterIndex < filterLibrary.length ? filterLibrary[selectedFilterIndex].size.width : 240},
-                    {key: "height", scalable: false, hexInput: false, value: selectedFilterIndex < filterLibrary.length ? filterLibrary[selectedFilterIndex].size.height : 240},
-                    {key: "cx", scalable: false, hexInput: false, value: (selectedFilterIndex < filterLibrary.length ? (filterLibrary[selectedFilterIndex].size.width / 2) : 120) | 0},
-                    {key: "cy", scalable: false, hexInput: false, value: (selectedFilterIndex < filterLibrary.length ? (filterLibrary[selectedFilterIndex].size.height / 2) : 120) | 0},
+                    {key: "width", scalable: false, hexInput: false, value: previewState.selectedFilterIndex < filterLibrary.length ? filterLibrary[previewState.selectedFilterIndex].size.width : 240},
+                    {key: "height", scalable: false, hexInput: false, value: previewState.selectedFilterIndex < filterLibrary.length ? filterLibrary[previewState.selectedFilterIndex].size.height : 240},
+                    {key: "cx", scalable: false, hexInput: false, value: (previewState.selectedFilterIndex < filterLibrary.length ? (filterLibrary[previewState.selectedFilterIndex].size.width / 2) : 120) | 0},
+                    {key: "cy", scalable: false, hexInput: false, value: (previewState.selectedFilterIndex < filterLibrary.length ? (filterLibrary[previewState.selectedFilterIndex].size.height / 2) : 120) | 0},
                     ...([...Array(9).keys()].map(i => ({ key: `C${i}`, scalable: false, hexInput: true, value: document.getElementById(`filter-c${i}`).value.substring(1).toUpperCase() }))),
                     ...([...Array(5).keys()].map(i => ({ key: `P${i}`, scalable: true, hexInput: false, value: document.getElementById(`filter-p${i}`).value.toString()}))),
                 ]
@@ -161,6 +375,7 @@ function updatePreview(code) {
         previewState.bitmaps = parsed.bitmaps;
         previewState.palette = parsed.palette;
         previewState.animations = parsed.animations;
+        previewState.parsed = parsed;
         for (let foundParameter of parsed.foundParameters) {
             let uiElement = document.getElementById(`filter-${foundParameter.toLowerCase()}`);
             if (uiElement) {
@@ -183,6 +398,20 @@ function drawPreviewBitmaps(bitmaps, palette, animations) {
             drawPreviewBitmap(bitmap, palette);
         }
     }
+    if (previewState.selectedFilterIndex < filterLibrary.length) {
+        filterLibrary[previewState.selectedFilterIndex].image = previewCanvas.toDataURL();
+    }
+    if (!previewState.painted) {
+        updateFilterList();
+    }
+    if (!previewState.sent && previewState.parsed != null) {
+        if (sendCommand(previewState.parsed.finalCode)) {
+            previewState.sent = true;
+            previewState.lastSent = Date.now();
+        }
+    }
+    previewState.painted = true;
+    localStorage.setItem("editing", JSON.stringify(filterLibrary));
 }
 
 function getAnimationLength(animations) {
@@ -328,7 +557,6 @@ function parseCode(stream, replacements) {
     function parsePalette(stream) {
         expect(stream, "P");
         if (stream.peek() === ">") {
-            readChar(stream);
             parsed.palette.length = 0;
             return;
         }
@@ -356,15 +584,15 @@ function parseCode(stream, replacements) {
         expect(stream, "B");
         const x = parseHexByteAndAHalf(stream);
         const y = parseHexByteAndAHalf(stream);
-        const width = parseHexByteAndAHalf(stream);
-        const height = parseHexByteAndAHalf(stream);
+        const width = parseHexByte(stream) * 16;
+        const height = parseHexByte(stream) * 16;
         const bits = parseHexDigit(stream);
         const data = [];
         while (stream.peek() !== ">") {
             data.push(readChar(stream));
         }
         const binary = hexDigitsToBinary(data);
-        const pixels = binaryToIndices(binary, bits);
+        const pixels = undoBlockRearrangement(binaryToIndices(binary, 8), width, height);
         addBitmap(x, y, width, height, pixels);
     }
     function parseTemplate(stream) {
