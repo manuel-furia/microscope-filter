@@ -252,8 +252,8 @@ function gifToBitmap(image) {
     // Read the image data
     const canvas = document.createElement("canvas");
     const context = canvas.getContext("2d");
-    canvas.width = (Math.floor(image.width / 16) + 1) * 16;
-    canvas.height = (Math.floor(image.height / 16) + 1) * 16;
+    canvas.width = (Math.ceil(image.width / 16)) * 16;
+    canvas.height = (Math.ceil(image.height / 16)) * 16;
     context.clearRect(0, 0, canvas.width, canvas.height);
     context.drawImage(image, 0, 0, image.width, image.height);
 
