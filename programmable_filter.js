@@ -197,6 +197,8 @@ document.getElementById("add-filter").addEventListener("click", e => {
         image: null,
         parameterValues: []
     });
+    previewState.selectedFilterIndex = filterLibrary.length - 1;
+    document.getElementById("filter-code").value = "";
     setFilterData();
     resetPreviewState();
     updateFilterList();
@@ -228,6 +230,8 @@ document.getElementById("add-bitmap").addEventListener("click", e => {
         gif.src = URL.createObjectURL(file);
         gif.onload = () => {
             document.getElementById("filter-code").value += gifToBitmap(gif);
+            setFilterData();
+            updatePreview(document.getElementById("filter-code").value);
         };
     });
     input.click();
