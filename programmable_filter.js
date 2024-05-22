@@ -353,6 +353,47 @@ function undoBlockRearrangement(indices, width, height) {
     return rearranged;
 }
 
+function createReplacement(key, value, scalable, hexInput) {
+    function parseKey(givenKey) {
+        if (givenKey.includes("+")) {
+            return { key: givenKey.split("+")[0], constant: givenKey.split("+")[1], operator: (a, b) => a + b };
+        } else if (givenKey.includes("-")) {
+            return { key: givenKey.split("-")[0], constant: givenKey.split("-")[1], operator: (a, b) => a - b};
+        } else if (givenKey.includes("*")) {
+            return { key: givenKey.split("*")[0], constant: givenKey.split("*")[1], operator: (a, b) => a * b};
+        } else {
+            return { key: givenKey, constant: null };
+        }
+    };
+    return { key, value, scalable, hexInput,
+        computeValue: (parameter) => {
+            let parsedKey = parseKey(parameter.key);
+            let replacementValue = value.toString();
+            if (scalable) {
+                let value = parseInt(replacementValue);
+                let maxVal = parameter.maxVal || 255;
+                let minVal = parameter.minVal || 0;
+                let scaled = (minVal + (maxVal - minVal) * value / 255) | 0;
+                replacementValue = scaled.toString();
+            }
+            if (parsedKey.constant) {
+                if (hexInput) {
+                    return parsedKey.operator(parseInt(replacementValue, 16), parsedKey.constant.includes(".") ? parseFloat(parsedKey.constant) : parseInt(parsedKey.constant, 16)).toString(16).toUpperCase();
+                } else {
+                    return (parsedKey.operator(parseInt(replacementValue), parseFloat(parsedKey.constant)) | 0).toString();
+                }
+            } else {
+                return replacementValue;
+            }
+        },
+        matches: (otherKey) => {
+            return key === otherKey || otherKey.startsWith(key + "+") || otherKey.startsWith(key + "-") || otherKey.startsWith(key + "*");
+        },
+        getParsedKey: (givenKey) => parseKey(givenKey)
+    };
+
+}
+
 function updatePreview(code) {
     resetPreviewState();
     try {
@@ -362,14 +403,16 @@ function updatePreview(code) {
         Array.from(document.getElementsByClassName("filter-color")).forEach(color => {
             color.disabled = true;
         });
+        const W = previewState.selectedFilterIndex < filterLibrary.length ? filterLibrary[previewState.selectedFilterIndex].size.width : 240;
+        const H = previewState.selectedFilterIndex < filterLibrary.length ? filterLibrary[previewState.selectedFilterIndex].size.height : 240;
         let parsed = parseCode(streamCode(code),
                 [
-                    {key: "width", scalable: false, hexInput: false, value: previewState.selectedFilterIndex < filterLibrary.length ? filterLibrary[previewState.selectedFilterIndex].size.width : 240},
-                    {key: "height", scalable: false, hexInput: false, value: previewState.selectedFilterIndex < filterLibrary.length ? filterLibrary[previewState.selectedFilterIndex].size.height : 240},
-                    {key: "cx", scalable: false, hexInput: false, value: (previewState.selectedFilterIndex < filterLibrary.length ? (filterLibrary[previewState.selectedFilterIndex].size.width / 2) : 120) | 0},
-                    {key: "cy", scalable: false, hexInput: false, value: (previewState.selectedFilterIndex < filterLibrary.length ? (filterLibrary[previewState.selectedFilterIndex].size.height / 2) : 120) | 0},
-                    ...([...Array(9).keys()].map(i => ({ key: `C${i}`, scalable: false, hexInput: true, value: document.getElementById(`filter-c${i}`).value.substring(1).toUpperCase() }))),
-                    ...([...Array(5).keys()].map(i => ({ key: `P${i}`, scalable: true, hexInput: false, value: document.getElementById(`filter-p${i}`).value.toString()}))),
+                    createReplacement("width", W, false, false),
+                    createReplacement("height", H, false, false),
+                    createReplacement("cx", (W / 2) | 0, false, false),
+                    createReplacement("cy", (H / 2) | 0, false, false),
+                    ...([...Array(9).keys()].map(i => createReplacement(`C${i}`, document.getElementById(`filter-c${i}`).value.substring(1).toUpperCase(), false, true))),
+                    ...([...Array(5).keys()].map(i => createReplacement(`P${i}`, document.getElementById(`filter-p${i}`).value.toString(), true, false))),
                 ]
             );
         previewState.bitmaps = parsed.bitmaps;
@@ -660,16 +703,9 @@ function parseCode(stream, replacements) {
         let result = "0".repeat(len);
         let hexInput = false;
         for (let replacement of replacements) {
-            if (replacement.key === parameter.key) {
-                parsed.foundParameters.push(replacement.key);
-                let replacementValue = replacement.value;
-                if (replacement.scalable) {
-                    let value = parseInt(replacement.value);
-                    let maxVal = parameter.maxVal || 255;
-                    let minVal = parameter.minVal || 0;
-                    let scaled = (minVal + (maxVal - minVal) * value / 255) | 0;
-                    replacementValue = scaled.toString();
-                }
+            if (replacement.matches(parameter.key)) {
+                parsed.foundParameters.push(replacement.getParsedKey(parameter.key).key);
+                let replacementValue = replacement.computeValue(parameter);
                 let hex = replacement.hexInput ? replacementValue : parseInt(replacementValue).toString(16).toUpperCase();
                 result = hex.substring(0, Math.min(len, hex.length)).padStart(len, "0");
                 hexInput = replacement.hexInput;
