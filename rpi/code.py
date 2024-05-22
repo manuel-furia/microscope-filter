@@ -114,7 +114,7 @@ class Section:
         elif self.index == 2:
             bitmaptools.fill_region(bitmap, 0, hh, hw, h, self.color)
         elif self.index == 3:
-            bitmaptools.fill_region(bitmap, 0, hh, w, h, self.color)
+            bitmaptools.fill_region(bitmap, hw, hh, w, h, self.color)
 
 class TemplateFilter:
     def __init__(self, x, y, s, backgroundColor, components):
